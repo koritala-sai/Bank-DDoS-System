@@ -46,3 +46,5 @@ htmlcov/
 
 #backend
 backend/.env
+.env.example
+.env    
