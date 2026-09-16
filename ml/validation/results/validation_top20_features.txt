@@ -1,0 +1,29 @@
+================================================================================
+        LEAKAGE-SAFE TOP 20 SELECTED FEATURES (X_TRAIN ONLY)
+================================================================================
+Selection Method: Random Forest Feature Importance (MDI on X_train)
+Training Samples Used: 34,496
+
+TOP 20 FEATURES & IMPORTANCE SCORES:
+--------------------------------------------------------------------------------
+ Rank  1 | Feature: Min Packet Length                   | Importance: 0.084691
+ Rank  2 | Feature: Inbound                             | Importance: 0.075438
+ Rank  3 | Feature: Fwd Packet Length Min               | Importance: 0.074208
+ Rank  4 | Feature: Fwd Packet Length Mean              | Importance: 0.070523
+ Rank  5 | Feature: Avg Fwd Segment Size                | Importance: 0.058600
+ Rank  6 | Feature: Average Packet Size                 | Importance: 0.048147
+ Rank  7 | Feature: Bwd IAT Max                         | Importance: 0.044039
+ Rank  8 | Feature: Bwd Packets/s                       | Importance: 0.043076
+ Rank  9 | Feature: Packet Length Mean                  | Importance: 0.040649
+ Rank 10 | Feature: Bwd Header Length                   | Importance: 0.035712
+ Rank 11 | Feature: URG Flag Count                      | Importance: 0.029305
+ Rank 12 | Feature: Total Backward Packets              | Importance: 0.021719
+ Rank 13 | Feature: Fwd IAT Std                         | Importance: 0.021305
+ Rank 14 | Feature: Down/Up Ratio                       | Importance: 0.019406
+ Rank 15 | Feature: Fwd IAT Mean                        | Importance: 0.019258
+ Rank 16 | Feature: Flow IAT Mean                       | Importance: 0.016072
+ Rank 17 | Feature: ACK Flag Count                      | Importance: 0.015693
+ Rank 18 | Feature: Init_Win_bytes_forward              | Importance: 0.015312
+ Rank 19 | Feature: Bwd IAT Mean                        | Importance: 0.014513
+ Rank 20 | Feature: Init_Win_bytes_backward             | Importance: 0.014047
+================================================================================

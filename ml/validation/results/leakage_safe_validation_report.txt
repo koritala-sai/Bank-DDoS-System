@@ -1,0 +1,51 @@
+================================================================================
+           LEAKAGE-SAFE ML VALIDATION REPORT - CICDDOS2019
+================================================================================
+
+1. DEDUPLICATION STATISTICS (IN-MEMORY ONLY):
+--------------------------------------------------------------------------------
+ Dataset Size Before Deduplication: 77,261 rows
+ Duplicate Rows Removed:            34,141 rows
+ Dataset Size After Deduplication:  43,120 rows
+ Class Distribution After Deduplication: BENIGN (0): 25,318 | DDoS (1): 17,802
+ EXPLICIT STATEMENT: The original dataset CSV ('dataset/processed/ddos_preprocessed.csv') was NOT modified.
+
+2. TRAIN / TEST SPLIT CONFIGURATION:
+--------------------------------------------------------------------------------
+ Training Samples (80%): 34,496 rows
+ Testing Samples (20%):  8,624 rows (Completely unseen test set)
+ Stratified: Yes | Random State: 42
+
+3. LEAKAGE-SAFE FEATURE SELECTION SUMMARY:
+--------------------------------------------------------------------------------
+ EXPLICIT STATEMENT: Feature selection (zero-variance removal, duplicate column removal,
+ and Random Forest MDI ranking) was performed using TRAINING DATA ONLY (X_train).
+ Candidate Feature Count: 61
+ Top 20 Selected Features: Min Packet Length, Inbound, Fwd Packet Length Min, Fwd Packet Length Mean, Avg Fwd Segment Size, Average Packet Size, Bwd IAT Max, Bwd Packets/s, Packet Length Mean, Bwd Header Length, URG Flag Count, Total Backward Packets, Fwd IAT Std, Down/Up Ratio, Fwd IAT Mean, Flow IAT Mean, ACK Flag Count, Init_Win_bytes_forward, Bwd IAT Mean, Init_Win_bytes_backward
+
+4. VALIDATION RESULTS SUMMARY (6 EXPERIMENTS):
+--------------------------------------------------------------------------------
+Feature Set          | Model                | Accuracy | Precision | Recall   | F1-Score | Train(s) | Pred(s) 
+-------------------------------------------------------------------------------------------------------------------
+Candidate Features   | Logistic Regression  | 0.995594 | 0.997739 | 0.991573 | 0.994646 | 0.1735   | 0.0044  
+Candidate Features   | Decision Tree        | 0.999072 | 0.999157 | 0.998596 | 0.998876 | 0.3859   | 0.0035  
+Candidate Features   | Random Forest        | 0.999188 | 0.999438 | 0.998596 | 0.999016 | 0.4502   | 0.0280  
+Top 20 Features      | Logistic Regression  | 0.993622 | 0.993523 | 0.991011 | 0.992266 | 0.0556   | 0.0022  
+Top 20 Features      | Decision Tree        | 0.999304 | 0.999157 | 0.999157 | 0.999157 | 0.1006   | 0.0019  
+Top 20 Features      | Random Forest        | 0.999304 | 0.999438 | 0.998876 | 0.999157 | 0.2922   | 0.0261  
+
+5. CONFUSION MATRICES SUMMARY:
+--------------------------------------------------------------------------------
+ - Logistic Regression  (Candidate Features): TN=5,056, FP=8, FN=30, TP=3,530
+ - Decision Tree        (Candidate Features): TN=5,061, FP=3, FN=5, TP=3,555
+ - Random Forest        (Candidate Features): TN=5,062, FP=2, FN=5, TP=3,555
+ - Logistic Regression  (Top 20 Features   ): TN=5,041, FP=23, FN=32, TP=3,528
+ - Decision Tree        (Top 20 Features   ): TN=5,061, FP=3, FN=3, TP=3,557
+ - Random Forest        (Top 20 Features   ): TN=5,062, FP=2, FN=4, TP=3,556
+
+6. BEST VALIDATION MODEL:
+--------------------------------------------------------------------------------
+ Model: Decision Tree (Top 20 Features)
+ F1-Score: 0.999157 | Recall: 0.999157 | Accuracy: 0.999304
+ Selection Reason: Highest F1-score and Recall under strict zero-leakage conditions.
+================================================================================

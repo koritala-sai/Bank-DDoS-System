@@ -1,0 +1,17 @@
+================================================================================
+                    BEST TRAINED MODEL SUMMARY
+================================================================================
+Model Name:              Random Forest
+Feature Set Used:        Top 20 Features
+Number of Features:      20
+Accuracy:                0.999741
+Precision:               0.999900
+Recall:                  0.999700
+F1-Score:                0.999800
+Training Time (s):       0.4521
+Prediction Time (s):     0.0271
+True Positives (TP):     9,998
+True Negatives (TN):     5,451
+False Positives (FP):    1
+False Negatives (FN):    3
+================================================================================

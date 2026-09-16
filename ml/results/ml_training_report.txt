@@ -1,0 +1,72 @@
+================================================================================
+              MACHINE LEARNING TRAINING REPORT - CICDDOS2019
+================================================================================
+
+1. DATASET INFORMATION:
+--------------------------------------------------------------------------------
+ Source File: dataset/processed/ddos_preprocessed.csv
+ Total Rows: 77,261
+ Target Classes: 0 = BENIGN (27,261), 1 = DDoS (50,000)
+
+2. TRAIN / TEST SPLIT CONFIGURATION:
+--------------------------------------------------------------------------------
+ Split Ratio: 80% Training (61,808 samples), 20% Testing (15,452 samples)
+ Stratified: Yes (Class ratio maintained in train/test splits)
+ Random State: 42
+
+3. FEATURE SETS EVALUATED:
+--------------------------------------------------------------------------------
+ Set A: 61 Candidate Features (Post zero-variance & duplicate removal)
+ Set B: Top 20 Selected Features (MDI Random Forest Ranking)
+
+4. CLASSIFICATION MODELS EVALUATED:
+--------------------------------------------------------------------------------
+ 1. Logistic Regression (max_iter=1000, random_state=42, StandardScaler Pipeline)
+ 2. Decision Tree Classifier (random_state=42)
+ 3. Random Forest Classifier (n_estimators=100, random_state=42, n_jobs=-1)
+
+5. EXPERIMENT RESULTS SUMMARY (6 EXPERIMENTS):
+--------------------------------------------------------------------------------
+Feature Set        | Model                | Accuracy | Precision | Recall   | F1-Score | Train(s) | Pred(s) 
+-------------------------------------------------------------------------------------------------------------------
+61 Features        | Logistic Regression  | 0.996894 | 0.997700 | 0.997500 | 0.997600 | 0.3274   | 0.0085  
+61 Features        | Decision Tree        | 0.999353 | 0.999400 | 0.999600 | 0.999500 | 0.6078   | 0.0056  
+61 Features        | Random Forest        | 0.999547 | 0.999700 | 0.999600 | 0.999650 | 0.6331   | 0.0301  
+Top 20 Features    | Logistic Regression  | 0.996506 | 0.997002 | 0.997600 | 0.997301 | 0.0819   | 0.0030  
+Top 20 Features    | Decision Tree        | 0.999482 | 0.999600 | 0.999600 | 0.999600 | 0.1117   | 0.0030  
+Top 20 Features    | Random Forest        | 0.999741 | 0.999900 | 0.999700 | 0.999800 | 0.4521   | 0.0271  
+
+6. BEST MODEL BASED ON F1-SCORE:
+--------------------------------------------------------------------------------
+ Model: Random Forest (Top 20 Features)
+ F1-Score: 0.999800 | Recall: 0.999700 | Precision: 0.999900
+
+7. BEST MODEL BASED ON RECALL (DDoS Threat Detection Sensitivity):
+--------------------------------------------------------------------------------
+ Model: Random Forest (Top 20 Features)
+ Recall: 0.999700 | False Negatives: 3 undetected attacks
+
+8. BEST OVERALL PRACTICAL MODEL:
+--------------------------------------------------------------------------------
+ Selected Model: Random Forest using Top 20 Features
+ Rationale: Highest F1-score (0.999800) combined with low prediction latency (0.0271s).
+ Zero data leakage ensured via Pipeline scaler scoping and pre-split feature selection.
+
+9. TRAINING TIME COMPARISON:
+--------------------------------------------------------------------------------
+ - Logistic Regression  (Top 20 Features ): 0.0819 seconds
+ - Decision Tree        (Top 20 Features ): 0.1117 seconds
+ - Logistic Regression  (61 Features     ): 0.3274 seconds
+ - Random Forest        (Top 20 Features ): 0.4521 seconds
+ - Decision Tree        (61 Features     ): 0.6078 seconds
+ - Random Forest        (61 Features     ): 0.6331 seconds
+
+10. PREDICTION LATENCY COMPARISON:
+--------------------------------------------------------------------------------
+ - Logistic Regression  (Top 20 Features ): 0.0030 seconds
+ - Decision Tree        (Top 20 Features ): 0.0030 seconds
+ - Decision Tree        (61 Features     ): 0.0056 seconds
+ - Logistic Regression  (61 Features     ): 0.0085 seconds
+ - Random Forest        (Top 20 Features ): 0.0271 seconds
+ - Random Forest        (61 Features     ): 0.0301 seconds
+================================================================================

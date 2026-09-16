@@ -1,0 +1,29 @@
+================================================================================
+           ORIGINAL VS. LEAKAGE-SAFE VALIDATION COMPARISON SUMMARY
+================================================================================
+
+1. EXPERIMENT OVERVIEW:
+   - Original Random Split Result:
+     * Model: Random Forest + Top 20
+     * F1-Score: 0.999800
+     * Recall:   0.999700
+     * Context: Evaluated on random 80/20 train/test split containing duplicate rows.
+
+   - Leakage-Safe Validation Result:
+     * Model: Decision Tree (Top 20 Features)
+     * F1-Score: 0.999157
+     * Recall:   0.999157
+     * Accuracy: 0.999304
+     * Context: Evaluated after in-memory deduplication with strict training-set-only feature selection.
+
+2. PERFORMANCE ASSESSMENT:
+   - F1-Score Difference: -0.000643
+   - Recall Difference:   -0.000543
+   - Conclusion: Performance stayed remarkably similar (robust detection capability confirmed).
+
+3. METHODOLOGICAL NOTES:
+   - Duplicate network traffic records in raw flows can potentially cause optimistic random train/test evaluation
+     if identical flow patterns appear in both training and test sets.
+   - This validation experiment confirms model robustness under strict zero-leakage conditions (deduplicated dataset,
+     pre-split feature selection, and unseen test evaluation).
+================================================================================
