@@ -125,7 +125,60 @@ GET /api/health
 
 ---
 
-### ML Prediction
+### Analyze Flow & Persist (Prediction Pipeline Integration)
+```
+POST /api/analyze
+Content-Type: application/json
+```
+**Request body:** Safe flow sample metadata (source_ip, destination_ip, source_port, destination_port, protocol, packet_count, flow_duration) + all 20 validated feature names with numeric values.
+
+```json
+{
+  "source_ip": "192.168.1.100",
+  "destination_ip": "10.0.0.1",
+  "source_port": 54321,
+  "destination_port": 443,
+  "protocol": "TCP",
+  "flow_duration": 1.25,
+  "packet_count": 45,
+  "Min Packet Length": 64.0,
+  "Inbound": 1.0,
+  "Fwd Packet Length Min": 64.0,
+  "Fwd Packet Length Mean": 128.0,
+  "Avg Fwd Segment Size": 128.0,
+  "Average Packet Size": 256.0,
+  "Bwd IAT Max": 1000.0,
+  "Bwd Packets/s": 50.0,
+  "Packet Length Mean": 200.0,
+  "Bwd Header Length": 40.0,
+  "URG Flag Count": 0.0,
+  "Total Backward Packets": 10.0,
+  "Fwd IAT Std": 50.0,
+  "Down/Up Ratio": 1.0,
+  "Fwd IAT Mean": 100.0,
+  "Flow IAT Mean": 80.0,
+  "ACK Flag Count": 15.0,
+  "Init_Win_bytes_forward": 65535.0,
+  "Bwd IAT Mean": 120.0,
+  "Init_Win_bytes_backward": 28960.0
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "status": "success",
+  "message": "Flow analyzed and saved successfully",
+  "record_id": 1,
+  "prediction": "Normal",
+  "risk_level": "LOW",
+  "confidence": 0.98
+}
+```
+
+---
+
+### ML Prediction (Inference Only)
 ```
 POST /api/predict
 Content-Type: application/json

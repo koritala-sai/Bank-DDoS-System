@@ -28,7 +28,7 @@ CICFlowMeter / CIC-DDoS2019 Semantic Alignment & Live Capture Limitations:
 -------------------------------------------------------------------------
 1. Inbound:
    - In CIC-DDoS2019 dataset, 'Inbound' indicates whether a flow is directed towards the victim/monitored network.
-   - In live passive capture, this is derived from destination IP address heuristics (e.g. RFC 1918 private subnet).
+   - In live passive capture, this is checked against the configured MONITORED_SUBNET(s). Defaults to 0.0 when unconfigured.
 2. Inter-Arrival Times (IAT):
    - In CIC-DDoS2019 / CICFlowMeter, IAT metrics are measured in microseconds (us).
    - In this module, IATs are computed in microseconds (us) from packet timestamps.
@@ -39,34 +39,60 @@ CICFlowMeter / CIC-DDoS2019 Semantic Alignment & Live Capture Limitations:
    - In CICFlowMeter, this equals the forward packet length mean (Total Forward Bytes / Total Forward Packets).
 """
 
+import ipaddress
 import numpy as np
 import pandas as pd
-from typing import Dict, Union, Any
+from typing import Dict, Union, Any, List, Optional
 
-from .config import TOP_20_FEATURES, PRIVATE_IP_PREFIXES
+from .config import TOP_20_FEATURES, MONITORED_SUBNETS
 from .flow_tracker import NetworkFlow
 
 
-def is_inbound_traffic(dst_ip: str) -> float:
+def is_inbound_traffic(
+    dst_ip: str,
+    monitored_subnets: Optional[List[Union[ipaddress.IPv4Network, ipaddress.IPv6Network]]] = None
+) -> float:
     """
-    Heuristic to determine if traffic is inbound to local/private network.
-    
+    Determines if traffic is inbound to the configured monitored subnet(s).
+
     Args:
         dst_ip (str): Destination IP address string.
-        
+        monitored_subnets (list, optional): List of ipaddress Network objects.
+            If None, uses MONITORED_SUBNETS from config.
+
     Returns:
-        float: 1.0 if inbound, 0.0 if outbound.
+        float: 1.0 if inbound to configured subnet, 0.0 otherwise.
+               If no subnet is configured, returns 0.0 (safe unconfigured behavior).
+               If destination IP is invalid or empty, returns 0.0.
     """
     if not dst_ip or not isinstance(dst_ip, str):
-        return 1.0
-    
+        return 0.0
+
     clean_ip = dst_ip.strip()
-    if clean_ip.startswith(PRIVATE_IP_PREFIXES) or clean_ip == "localhost":
-        return 1.0
+    if clean_ip.lower() == "localhost":
+        clean_ip = "127.0.0.1"
+
+    try:
+        ip_obj = ipaddress.ip_address(clean_ip)
+    except ValueError:
+        return 0.0
+
+    subnets = monitored_subnets if monitored_subnets is not None else MONITORED_SUBNETS
+    if not subnets:
+        return 0.0
+
+    for net in subnets:
+        if ip_obj in net:
+            return 1.0
+
     return 0.0
 
 
-def extract_features(flow: Union[NetworkFlow, Dict[str, Any]], as_df: bool = False) -> Union[Dict[str, float], pd.DataFrame]:
+def extract_features(
+    flow: Union[NetworkFlow, Dict[str, Any]],
+    as_df: bool = False,
+    monitored_subnets: Optional[List[Union[ipaddress.IPv4Network, ipaddress.IPv6Network]]] = None
+) -> Union[Dict[str, float], pd.DataFrame]:
     """
     Extracts the exact Top 20 validated ML features from a NetworkFlow object.
 
@@ -134,7 +160,7 @@ def extract_features(flow: Union[NetworkFlow, Dict[str, Any]], as_df: bool = Fal
     min_pkt_len = float(min(all_lengths)) if all_lengths else 0.0
 
     # 2. Inbound
-    inbound_val = is_inbound_traffic(dst_ip)
+    inbound_val = is_inbound_traffic(dst_ip, monitored_subnets=monitored_subnets)
 
     # 3. Fwd Packet Length Min
     fwd_len_min = float(min(fwd_lengths)) if fwd_lengths else 0.0

@@ -54,7 +54,8 @@ class NetworkIntegrationService:
             packet_count=int(record["packet_count"]) if record.get("packet_count") is not None else None,
             prediction=str(record.get("prediction", "Normal")),
             risk_level=str(record.get("risk_level", "LOW")),
-            confidence=float(record["confidence"]) if record.get("confidence") is not None else None
+            confidence=float(record["confidence"]) if record.get("confidence") is not None else None,
+            source_type=str(record.get("source_type")) if record.get("source_type") is not None else None
         )
 
         db.session.add(traffic_record)

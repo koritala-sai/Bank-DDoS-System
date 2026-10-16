@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 
 # Environment variables & secrets
+.env.example
 .env
 .env.local
 *.env
@@ -48,3 +49,11 @@ htmlcov/
 backend/.env
 .env.example
 .env    
+# Feature audit logs (may contain flow metadata; not for version control)
+logs/
+
+# Database backups
+database/backups/
+
+# Temporary debugging scripts
+scratch/

@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS traffic_records (
     prediction VARCHAR(50) NOT NULL DEFAULT 'Normal',
     risk_level VARCHAR(20) NOT NULL DEFAULT 'LOW',
     confidence FLOAT NULL,
+    source_type VARCHAR(32) NULL,
     INDEX idx_timestamp (timestamp),
     INDEX idx_source_ip (source_ip),
     INDEX idx_destination_ip (destination_ip),

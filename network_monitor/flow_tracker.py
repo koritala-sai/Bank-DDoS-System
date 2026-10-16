@@ -71,8 +71,10 @@ class NetworkFlow:
         self.psh_flag_count: int = 0
 
         # TCP Window Sizes
-        self.init_win_bytes_fwd: int = 0
-        self.init_win_bytes_bwd: int = 0
+        # Sentinel -1 matches the CICFlowMeter convention for non-TCP flows (UDP/ICMP)
+        # where no TCP window size exists. A real TCP window of 0 is a distinct value.
+        self.init_win_bytes_fwd: int = -1
+        self.init_win_bytes_bwd: int = -1
 
     @property
     def total_packets(self) -> int:
@@ -130,8 +132,9 @@ class NetworkFlow:
                 self.fwd_iats_us.append(fwd_iat)
             self.fwd_timestamps.append(timestamp)
 
-            # Record initial window size on first forward packet with TCP
-            if self.init_win_bytes_fwd == 0 and tcp_win is not None:
+            # Record initial window size on first forward packet with TCP.
+            # Guard uses -1 (sentinel) so a real window value of 0 is captured correctly.
+            if self.init_win_bytes_fwd == -1 and tcp_win is not None:
                 self.init_win_bytes_fwd = tcp_win
 
         else:
@@ -145,8 +148,9 @@ class NetworkFlow:
                 self.bwd_iats_us.append(bwd_iat)
             self.bwd_timestamps.append(timestamp)
 
-            # Record initial window size on first backward packet with TCP
-            if self.init_win_bytes_bwd == 0 and tcp_win is not None:
+            # Record initial window size on first backward packet with TCP.
+            # Guard uses -1 (sentinel) so a real window value of 0 is captured correctly.
+            if self.init_win_bytes_bwd == -1 and tcp_win is not None:
                 self.init_win_bytes_bwd = tcp_win
 
         # TCP Flags
@@ -185,10 +189,12 @@ class FlowTracker:
         dst_ip: str,
         src_port: int,
         dst_port: int,
-        protocol: str
+        protocol: str,
+        tcp_flags: Optional[Dict[str, bool]] = None
     ) -> Tuple[Tuple[str, str, int, int, str], bool]:
         """
-        Determines canonical flow key and direction.
+        Determines canonical flow key and direction. If the first observed packet of a new
+        TCP flow is a SYN-ACK, canonicalizes the flow with client as src and server as dst.
 
         Returns:
             ((canonical_src, canonical_dst, canonical_sport, canonical_dport, proto), is_forward)
@@ -201,7 +207,14 @@ class FlowTracker:
         elif bwd_key in self.flows:
             return bwd_key, False
         else:
-            # New flow: this packet establishes forward direction
+            # New flow: check if initial packet is a TCP handshake response (SYN-ACK)
+            if protocol == "TCP" and tcp_flags and tcp_flags.get("SYN") and tcp_flags.get("ACK"):
+                # Client is packet.dst:dst_port, Server is packet.src:src_port
+                return bwd_key, False
+
+            # Default (client SYN or mid-stream packet): first observed packet establishes forward direction.
+            # Note: For mid-stream flows without SYN/SYN-ACK, direction cannot be reliably inferred
+            # from ports or subnets alone; temporal arrival order is preserved.
             return fwd_key, True
 
     def process_packet(self, packet: Any, timestamp: Optional[float] = None) -> Optional[NetworkFlow]:
@@ -264,13 +277,14 @@ class FlowTracker:
 
             total_hdr_len = ip_hdr_len + trans_hdr_len
 
-            canonical_key, is_fwd = self.get_flow_key(src_ip, dst_ip, src_port, dst_port, proto_str)
+            canonical_key, is_fwd = self.get_flow_key(src_ip, dst_ip, src_port, dst_port, proto_str, tcp_flags=tcp_flags)
             if canonical_key not in self.flows:
+                c_src, c_dst, c_sport, c_dport, _ = canonical_key
                 self.flows[canonical_key] = NetworkFlow(
-                    src_ip=src_ip,
-                    dst_ip=dst_ip,
-                    src_port=src_port,
-                    dst_port=dst_port,
+                    src_ip=c_src,
+                    dst_ip=c_dst,
+                    src_port=c_sport,
+                    dst_port=c_dport,
                     protocol=proto_str,
                     start_time=pkt_time
                 )
@@ -299,13 +313,14 @@ class FlowTracker:
             tcp_flags = packet.get("tcp_flags", None)
             tcp_win = packet.get("tcp_window", None)
 
-            canonical_key, is_fwd = self.get_flow_key(src_ip, dst_ip, src_port, dst_port, proto_str)
+            canonical_key, is_fwd = self.get_flow_key(src_ip, dst_ip, src_port, dst_port, proto_str, tcp_flags=tcp_flags)
             if canonical_key not in self.flows:
+                c_src, c_dst, c_sport, c_dport, _ = canonical_key
                 self.flows[canonical_key] = NetworkFlow(
-                    src_ip=src_ip,
-                    dst_ip=dst_ip,
-                    src_port=src_port,
-                    dst_port=dst_port,
+                    src_ip=c_src,
+                    dst_ip=c_dst,
+                    src_port=c_sport,
+                    dst_port=c_dport,
                     protocol=proto_str,
                     start_time=pkt_time
                 )

@@ -28,6 +28,7 @@ class TrafficRecord(db.Model):
     prediction = db.Column(db.String(50), nullable=False, default="Normal")  # "Normal" | "DDoS"
     risk_level = db.Column(db.String(20), nullable=False, default="LOW", index=True)  # "LOW" | "HIGH"
     confidence = db.Column(db.Float, nullable=True)
+    source_type = db.Column(db.String(32), nullable=True)  # "live" | "sample" | None (historical)
 
     def to_dict(self):
         """Serializes the TrafficRecord model instance into a dictionary."""
@@ -43,7 +44,8 @@ class TrafficRecord(db.Model):
             "packet_count": self.packet_count,
             "prediction": self.prediction,
             "risk_level": self.risk_level,
-            "confidence": self.confidence
+            "confidence": self.confidence,
+            "source_type": self.source_type
         }
 
     def __repr__(self):

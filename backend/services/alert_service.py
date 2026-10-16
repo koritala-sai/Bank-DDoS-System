@@ -80,7 +80,7 @@ class AlertService:
         if status_clean not in Alert.VALID_STATUSES:
             return False, None, f"Invalid status '{new_status}'. Allowed values: {list(Alert.VALID_STATUSES)}"
 
-        alert = Alert.query.get(alert_id)
+        alert = db.session.get(Alert, alert_id)
         if not alert:
             return False, None, f"Alert with ID {alert_id} not found."
 

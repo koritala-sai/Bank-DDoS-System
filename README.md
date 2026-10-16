@@ -154,56 +154,101 @@ In Week 1, the project foundation and clean modular directory structure were suc
 
 ---
 
-## 9. How to Run the Basic Flask Backend
+## 9. How to Run & Test the Flask Backend and Database Integration
 
 ### Prerequisites
-- Python 3.9 or higher installed
-- Virtual environment (recommended)
+- Python 3.10+
+- MySQL Server 8.0+ running locally (Port 3306)
 
-### Step 1: Clone the Repository & Navigate to Workspace
-```bash
-git clone <repository-url>
-cd Bank-DDoS-System
-```
+---
 
-### Step 2: Create & Activate Virtual Environment
-```bash
-# On Windows
-python -m venv venv
-venv\Scripts\activate
-
-# On Linux/macOS
-python3 -m venv venv
-source venv/bin/activate
-```
-
-### Step 3: Install Dependencies
-```bash
-pip install -r requirements.txt
-```
-
-### Step 4: Configure Environment Variables (Optional)
-Copy `.env.example` to `.env`:
+### Step 1: Environment Setup (.env)
+Copy `.env.example` to `.env` (or `backend/.env`):
 ```bash
 cp .env.example .env
 ```
+Ensure your database credentials in `.env` match your local MySQL configuration:
+```env
+FLASK_APP=backend/app.py
+FLASK_ENV=development
+FLASK_DEBUG=1
+PORT=5000
+SECRET_KEY=change-this-in-production
 
-### Step 5: Run the Flask Server
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=bank_ddos
+DB_USER=root
+DB_PASSWORD=your_mysql_password_here
+```
+
+---
+
+### Step 2: Database Setup
+Create the MySQL database if it does not already exist:
+```sql
+CREATE DATABASE IF NOT EXISTS bank_ddos CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+Or run `database/schema.sql` via MySQL CLI:
 ```bash
-# Run using Python directly from the root directory
-python backend/app.py
+mysql -u root -p < database/schema.sql
 ```
+*(Note: On server startup, Flask automatically initializes all required ORM tables (`traffic_records` and `alerts`) safely if they do not exist).*
 
-### Step 6: Test the Health Check Endpoint
-Open your browser or run curl:
+---
+
+### Step 3: Start the Flask Server
 ```bash
-curl http://127.0.0.1:5000/api/health
+# Set PYTHONPATH to root directory
+$env:PYTHONPATH="."
+
+# Launch backend
+.venv\Scripts\python backend/app.py
+```
+Server starts on **http://localhost:5000**.
+
+---
+
+### Step 4: API Testing Examples
+
+#### 1. Health Check (`GET /api/health`)
+```bash
+curl http://localhost:5000/api/health
 ```
 
-**Expected JSON Response**:
-```json
-{
-  "status": "success",
-  "message": "Bank DDoS Detection System backend is running"
-}
+#### 2. Dashboard Summary (`GET /api/dashboard/summary`)
+```bash
+curl http://localhost:5000/api/dashboard/summary
 ```
+
+#### 3. Traffic History (`GET /api/traffic?limit=50`)
+```bash
+curl "http://localhost:5000/api/traffic?limit=50"
+```
+
+#### 4. Security Alerts (`GET /api/alerts?limit=50`)
+```bash
+curl "http://localhost:5000/api/alerts?limit=50"
+```
+
+#### 5. Analyze Flow & Persist (`POST /api/analyze`)
+Sends a safe sample flow payload through the ML prediction pipeline and saves the result to MySQL:
+```bash
+curl -X POST http://localhost:5000/api/analyze ^
+  -H "Content-Type: application/json" ^
+  -d "{\"source_ip\":\"192.168.1.100\",\"destination_ip\":\"10.0.0.1\",\"source_port\":54321,\"destination_port\":443,\"protocol\":\"TCP\",\"flow_duration\":1.25,\"packet_count\":45,\"Min Packet Length\":64.0,\"Inbound\":1.0,\"Fwd Packet Length Min\":64.0,\"Fwd Packet Length Mean\":128.0,\"Avg Fwd Segment Size\":128.0,\"Average Packet Size\":256.0,\"Bwd IAT Max\":1000.0,\"Bwd Packets/s\":50.0,\"Packet Length Mean\":200.0,\"Bwd Header Length\":40.0,\"URG Flag Count\":0.0,\"Total Backward Packets\":10.0,\"Fwd IAT Std\":50.0,\"Down/Up Ratio\":1.0,\"Fwd IAT Mean\":100.0,\"Flow IAT Mean\":80.0,\"ACK Flag Count\":15.0,\"Init_Win_bytes_forward\":65535.0,\"Bwd IAT Mean\":120.0,\"Init_Win_bytes_backward\":28960.0}"
+```
+
+---
+
+### Step 5: Run Automated Unit Tests
+All unit tests run safely using mocked data and an in-memory SQLite database without starting live packet capture or generating attack traffic:
+
+```bash
+# Run backend test suite (14 tests)
+.venv\Scripts\python -m unittest backend/tests/test_backend.py
+
+# Run network monitor test suite (6 tests)
+.venv\Scripts\python -m unittest discover -s network_monitor/tests
+```
+

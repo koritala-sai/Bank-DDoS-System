@@ -154,7 +154,8 @@ class BackendAPITestCase(unittest.TestCase):
             "packet_count": 45,
             "prediction": "Normal",
             "risk_level": "LOW",
-            "confidence": 0.98
+            "confidence": 0.98,
+            "source_type": "untrusted_client_input"  # Client cannot override server
         }
         response = self.client.post('/api/traffic', json=flow_payload)
         self.assertEqual(response.status_code, 201)
@@ -165,9 +166,10 @@ class BackendAPITestCase(unittest.TestCase):
 
         # Check DB record
         with self.app.app_context():
-            rec = TrafficRecord.query.get(data["record_id"])
+            rec = db.session.get(TrafficRecord, data["record_id"])
             self.assertIsNotNone(rec)
             self.assertEqual(rec.prediction, "Normal")
+            self.assertEqual(rec.source_type, "live")  # Enforced server-side
             # Verify no alerts were created
             self.assertEqual(Alert.query.count(), 0)
 
@@ -194,7 +196,7 @@ class BackendAPITestCase(unittest.TestCase):
 
         # Check that alert was saved in DB
         with self.app.app_context():
-            alert = Alert.query.get(data["alert_id"])
+            alert = db.session.get(Alert, data["alert_id"])
             self.assertIsNotNone(alert)
             self.assertEqual(alert.alert_type, "DDoS")
             self.assertEqual(alert.risk_level, "HIGH")
@@ -215,16 +217,30 @@ class BackendAPITestCase(unittest.TestCase):
         self.assertIn("Missing required fields", data["message"])
 
     def test_09_get_traffic_history_with_limit(self):
-        """Verify GET /api/traffic pagination and limit behavior."""
-        # Insert 5 records
+        """Verify GET /api/traffic pagination, limit behavior, and source_type serialization."""
+        # Insert records with live, sample, and legacy NULL source_type
         with self.app.app_context():
-            for i in range(5):
-                db.session.add(TrafficRecord(
-                    source_ip=f"10.0.0.{i+1}",
-                    destination_ip="192.168.1.1",
-                    prediction="Normal",
-                    risk_level="LOW"
-                ))
+            db.session.add(TrafficRecord(
+                source_ip="10.0.0.1",
+                destination_ip="192.168.1.1",
+                prediction="Normal",
+                risk_level="LOW",
+                source_type="live"
+            ))
+            db.session.add(TrafficRecord(
+                source_ip="10.0.0.2",
+                destination_ip="192.168.1.1",
+                prediction="Normal",
+                risk_level="LOW",
+                source_type="sample"
+            ))
+            db.session.add(TrafficRecord(
+                source_ip="10.0.0.3",
+                destination_ip="192.168.1.1",
+                prediction="Normal",
+                risk_level="LOW",
+                source_type=None  # Historical legacy row
+            ))
             db.session.commit()
 
         # Query with limit=3
@@ -234,6 +250,12 @@ class BackendAPITestCase(unittest.TestCase):
         self.assertEqual(data["status"], "success")
         self.assertEqual(data["count"], 3)
         self.assertEqual(len(data["data"]), 3)
+        
+        # Verify source_type is present in all records and legacy record is None
+        sources = [r.get("source_type") for r in data["data"]]
+        self.assertIn("live", sources)
+        self.assertIn("sample", sources)
+        self.assertIn(None, sources)
 
     # -------------------------------------------------------------
     # 4. Alerts API Tests
@@ -325,6 +347,52 @@ class BackendAPITestCase(unittest.TestCase):
         self.assertEqual(stats["high_risk_count"], 2)
         self.assertEqual(stats["active_alerts"], 2)  # NEW + ACKNOWLEDGED
 
+    # -------------------------------------------------------------
+    # 6. POST /api/analyze Endpoint Tests
+    # -------------------------------------------------------------
+    def test_13_analyze_sample_flow(self):
+        """Verify POST /api/analyze accepts sample flow, runs ML inference, and saves to database."""
+        payload = self._get_valid_feature_payload()
+        payload.update({
+            "source_ip": "192.168.1.50",
+            "destination_ip": "10.0.0.5",
+            "source_port": 12345,
+            "destination_port": 80,
+            "protocol": "TCP",
+            "flow_duration": 2.5,
+            "packet_count": 120
+        })
+
+        response = self.client.post('/api/analyze', json=payload)
+        self.assertEqual(response.status_code, 201)
+        data = response.get_json()
+        self.assertEqual(data["status"], "success")
+        self.assertIn("record_id", data)
+        self.assertIn(data["prediction"], ["Normal", "DDoS"])
+        self.assertIn(data["risk_level"], ["LOW", "HIGH"])
+
+        # Check that record exists in database with source_type='sample'
+        with self.app.app_context():
+            rec = db.session.get(TrafficRecord, data["record_id"])
+            self.assertIsNotNone(rec)
+            self.assertEqual(rec.source_ip, "192.168.1.50")
+            self.assertEqual(rec.destination_ip, "10.0.0.5")
+            self.assertEqual(rec.source_type, "sample")  # Enforced server-side
+
+    def test_14_analyze_missing_or_invalid_payload(self):
+        """Verify POST /api/analyze handles missing features or non-JSON payloads properly."""
+        # Non-JSON
+        resp_non_json = self.client.post('/api/analyze', data="not json")
+        self.assertEqual(resp_non_json.status_code, 400)
+
+        # Missing ML feature
+        payload = self._get_valid_feature_payload()
+        del payload["Min Packet Length"]
+        resp_missing = self.client.post('/api/analyze', json=payload)
+        self.assertEqual(resp_missing.status_code, 400)
+        self.assertIn("Missing required ML features", resp_missing.get_json()["message"])
+
 
 if __name__ == '__main__':
     unittest.main()
+

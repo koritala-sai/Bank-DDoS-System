@@ -62,6 +62,9 @@ def store_traffic_record():
             "message": f"Missing required fields: {missing_fields}"
         }), 400
 
+    # Enforce server-side source attribution (live capture)
+    payload["source_type"] = "live"
+
     try:
         result = NetworkIntegrationService.store_analyzed_flow(payload)
         response_data = {
