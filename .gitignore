@@ -57,3 +57,5 @@ database/backups/
 
 # Temporary debugging scripts
 scratch/
+
+/dataset/raw_archive_copy/
